@@ -34,10 +34,10 @@ import android.os.Message;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -61,7 +61,7 @@ import java.util.TimerTask;
  * Activity for the face tracker app.  This app detects faces with the rear facing camera, and draws
  * overlay graphics to indicate the position, size, and ID of each face.
  */
-public final class FaceTrackerActivity extends Activity {
+public final class FaceTrackerActivity extends Activity  implements View.OnClickListener {
     private static final String TAG = "FaceTracker";
 
     private CameraSource mCameraSource = null;
@@ -77,10 +77,24 @@ public final class FaceTrackerActivity extends Activity {
     private List<String> DEVICE_NAMES = new ArrayList<>(Arrays.asList("PetCamera"));
     private Intent BLEServerIntent;
 
-    private int SendDataSpeedOneSec  = 1;
+    private int SendDataSpeedOneSec  = 10;
     private Timer SendDataTimer=new Timer();
+    private Timer RobotResetTimer =new Timer();
     private int FaceCount = 0 ;
-    private PointF FacePos;
+    private PointF FacePos=new PointF(1920/2,1080/2);
+    private Button UpButton,LeftButton,RightButton,BotButton;
+    private final int EVENT_PLUS = 2;
+    private final int EVENT_SUB = 1;
+    private final int EVENT_WAIT = 0;
+    private final char ROBOT_COMMAND_MOVE ='s';
+    private final char ROBOT_COMMITE_INIT='e';
+    private boolean IsRobotResetTimerOn =false;
+    private int RobotResetSec =  0 ;
+
+
+
+
+
 
     //==============================================================================================
     // Activity Methods
@@ -93,6 +107,7 @@ public final class FaceTrackerActivity extends Activity {
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
         setContentView(R.layout.main);
+
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
@@ -100,6 +115,15 @@ public final class FaceTrackerActivity extends Activity {
 
         mPreview = (CameraSourcePreview) findViewById(R.id.preview);
         mGraphicOverlay = (GraphicOverlay) findViewById(R.id.faceOverlay);
+        UpButton=(Button)findViewById(R.id.btnUP);
+        LeftButton=(Button)findViewById(R.id.btnLeft);
+        RightButton=(Button)findViewById(R.id.btnRight);
+        BotButton=(Button)findViewById(R.id.btnBot);
+        UpButton.setOnClickListener(this);
+        LeftButton.setOnClickListener(this);
+        RightButton.setOnClickListener(this);
+        BotButton.setOnClickListener(this);
+
 
         // Check for the camera permission before accessing the camera.  If the
         // permission is not granted yet, request permission.
@@ -113,23 +137,56 @@ public final class FaceTrackerActivity extends Activity {
         prepareBLE();
         mHandler = new MyHandler(this);
 
+
         SendDataTimer.schedule(new TimerTask() {
             @Override
             public void run() {
                 if (mGraphicOverlay.getSize() <=0)
                 {
-                    SendBleMsg(DEVICE_NAMES.get(0)+", X:0" +";Y:0"+" "+"\n");
+                    RobotResetSec ++;
+                    if(RobotResetSec>50) {
+                        RobotContorller(ROBOT_COMMITE_INIT, 0, 0);
+                        RobotResetSec = 0;
+
+                    }
+                    //SendBleMsg(DEVICE_NAMES.get(0)+",e00");
 
                 }
                 else
                 {
+                    RobotResetSec= 0 ;
+                    PointF ImageCenter = new PointF(1920/2,1080/2);
+                    PointF FaceVec =new PointF( FacePos.x -ImageCenter.x,FacePos.y -ImageCenter.y);
+                    int X_Event=0,Y_Event=0;
+                    if(Math.abs(FacePos.x -ImageCenter.x) <400 )
+                    {
+                        X_Event =EVENT_WAIT;
 
-                    SendBleMsg(DEVICE_NAMES.get(0)+", X:"+(FacePos.x-1920/2)  +";Y:"+(FacePos.y-1080/2 )+"\n");
+                    }
+                    else
+                    {
+                        if(FacePos.x -ImageCenter.x < 0 )X_Event =EVENT_PLUS;
+                        else X_Event =   EVENT_SUB;
+                    }
+
+                    if(Math.abs(FacePos.y -ImageCenter.y) <300)
+                    {
+                        Y_Event =EVENT_WAIT;
+
+                    }
+                    else
+                    {
+                        if(FacePos.y -ImageCenter.y < 0 )Y_Event =EVENT_PLUS;
+                        else Y_Event =EVENT_SUB;
+                    }
+                   // SendBleMsg(DEVICE_NAMES.get(0)+",s"+(FacePos.x-1920/2)  +";Y:"+(FacePos.y-1080/2 )+"\n");
+                   RobotContorller(ROBOT_COMMAND_MOVE,X_Event,Y_Event);
 
 
                 }
             }
         },0,1000/SendDataSpeedOneSec);
+
     }
 
     /**
@@ -442,6 +499,38 @@ public final class FaceTrackerActivity extends Activity {
         if(mBle!=null)
             mBle.writeCharacteristic(msgs[0],msgs[1]);
     }
+
+    @Override
+    public void onClick(View v) {
+        System.out.println("OnClick");
+        switch (v.getId()) {
+
+            case R.id.btnBot:
+                RobotContorller(ROBOT_COMMAND_MOVE,EVENT_WAIT,EVENT_SUB);
+                break;
+
+            case R.id.btnRight:
+                RobotContorller(ROBOT_COMMAND_MOVE,EVENT_SUB,EVENT_WAIT);
+                break;
+
+            case R.id.btnLeft:
+                RobotContorller(ROBOT_COMMAND_MOVE,EVENT_PLUS,EVENT_WAIT);
+                break;
+            case R.id.btnUP:
+
+                RobotContorller(ROBOT_COMMAND_MOVE,EVENT_WAIT,EVENT_PLUS);
+                break;
+
+        }
+    }
+    void RobotContorller (char CommitCode,int X_Event,int Y_Event)
+    {
+
+            SendBleMsg(DEVICE_NAMES.get(0)+","+CommitCode+X_Event+ Y_Event);
+
+    }
+
+
 
 
 }

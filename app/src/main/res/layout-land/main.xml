@@ -8,6 +8,42 @@
     android:layout_height="match_parent"
     android:keepScreenOn="true">
 
+  <Button
+      android:id="@+id/btnUP"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:text="UP"
+
+      android:layout_marginLeft="800px"
+      android:layout_marginTop="0px"
+
+      />
+  <Button
+      android:id="@+id/btnRight"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:text="Right"
+
+      android:layout_marginLeft="1700px"
+      android:layout_marginTop="500px"
+      />
+  <Button
+      android:id="@+id/btnBot"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:text="BOT"
+      android:layout_marginLeft="800px"
+      android:layout_marginTop="900px"
+
+      />
+  <Button
+      android:id="@+id/btnLeft"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_marginLeft="0px"
+      android:layout_marginTop="500px"
+      android:text="LEFT" />
+
   <com.google.android.gms.samples.vision.face.facetracker.ui.camera.CameraSourcePreview
       android:id="@+id/preview"
       android:layout_width="2960px"

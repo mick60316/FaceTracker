@@ -327,7 +327,8 @@ public class BleService extends Service {
     //sned
     public void writeCharacteristic(String _DeviceName, String X) {
         Log.e("TAG1", X);
-        if (connectedDeviceMap.containsKey(_DeviceName)) {
+        if (connectedDeviceMap.containsKey(_DeviceName))
+        {
             try {
                 BluetoothGatt bluetoothGatt = connectedDeviceMap.get(_DeviceName);
 
@@ -340,7 +341,7 @@ public class BleService extends Service {
                 if (bluetoothGatt.writeCharacteristic(characteristicTx)) {
                     //Log.e("MarkBLETest","Send");
                     if (!X.equals(ACK))
-                        ActMethon(_DeviceName, X);
+                        //ActMethon(_DeviceName, X);
                     Log.i(TAG, "send LED true");
                 } else
                     Log.i(TAG, "send LED false");
