@@ -78,6 +78,8 @@ class FaceGraphic extends GraphicOverlay.Graphic {
     void setId(int id) {
         mFaceId = id;
     }
+    int getID (){return mFaceId;}
+
 
 
     /**
@@ -88,6 +90,11 @@ class FaceGraphic extends GraphicOverlay.Graphic {
         mFace = face;
 
         postInvalidate();
+    }
+    void setRectColor (int Color)
+    {
+
+        mBoxPaint.setColor(Color);
     }
 
     /**

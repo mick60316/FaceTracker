@@ -179,16 +179,17 @@ public class GraphicOverlay extends View {
                 mHeightScaleFactor = (float) canvas.getHeight() / (float) mPreviewHeight;
             }
             if(mGraphics.size()>0) {
-                Iterator<Graphic> test = mGraphics.iterator();
-                Graphic index = test.next();
-                index.draw(canvas);
+               // Iterator<Graphic> test = mGraphics.iterator();
+                //Graphic index = test.next();
+                //index.draw(canvas);
             }
            // Graphic index = (Graphic) mGraphics.toArray()[0];
 
            // index.draw(canvas);
-           // for (Graphic graphic : mGraphics)
-             //   graphic.draw(canvas);
-            //}
+            for (Graphic graphic : mGraphics)
+            {
+                graphic.draw(canvas);
+            }
         }
     }
     public int  getSize()
@@ -196,4 +197,5 @@ public class GraphicOverlay extends View {
             return mGraphics.size();
 
     }
+
 }

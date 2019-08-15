@@ -26,6 +26,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.graphics.PointF;
 import android.os.Bundle;
 import android.os.Handler;
@@ -35,6 +36,7 @@ import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
+import android.util.SparseArray;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -90,11 +92,8 @@ public final class FaceTrackerActivity extends Activity  implements View.OnClick
     private final char ROBOT_COMMITE_INIT='e';
     private boolean IsRobotResetTimerOn =false;
     private int RobotResetSec =  0 ;
-
-
-
-
-
+    private String  PreCommand,CurrentCommand;
+    private  FacePostion PreFace,CurrentFace;
 
     //==============================================================================================
     // Activity Methods
@@ -135,6 +134,10 @@ public final class FaceTrackerActivity extends Activity  implements View.OnClick
         }
 
         prepareBLE();
+
+        PreFace =new FacePostion();
+        CurrentFace =new FacePostion();
+
         mHandler = new MyHandler(this);
 
 
@@ -143,9 +146,12 @@ public final class FaceTrackerActivity extends Activity  implements View.OnClick
             public void run() {
                 if (mGraphicOverlay.getSize() <=0)
                 {
+
+                   RobotContorller(ROBOT_COMMAND_MOVE,0,0);
                     RobotResetSec ++;
                     if(RobotResetSec>50) {
                         RobotContorller(ROBOT_COMMITE_INIT, 0, 0);
+
                         RobotResetSec = 0;
 
                     }
@@ -156,9 +162,10 @@ public final class FaceTrackerActivity extends Activity  implements View.OnClick
                 {
                     RobotResetSec= 0 ;
                     PointF ImageCenter = new PointF(1920/2,1080/2);
+                    CurrentFace.setPosition(FacePos.x,FacePos.y);
                     PointF FaceVec =new PointF( FacePos.x -ImageCenter.x,FacePos.y -ImageCenter.y);
                     int X_Event=0,Y_Event=0;
-                    if(Math.abs(FacePos.x -ImageCenter.x) <400 )
+                    if(Math.abs(FacePos.x -ImageCenter.x) <300 )
                     {
                         X_Event =EVENT_WAIT;
 
@@ -180,7 +187,12 @@ public final class FaceTrackerActivity extends Activity  implements View.OnClick
                         else Y_Event =EVENT_SUB;
                     }
                    // SendBleMsg(DEVICE_NAMES.get(0)+",s"+(FacePos.x-1920/2)  +";Y:"+(FacePos.y-1080/2 )+"\n");
-                   RobotContorller(ROBOT_COMMAND_MOVE,X_Event,Y_Event);
+
+
+
+                    RobotContorller(ROBOT_COMMAND_MOVE,X_Event,Y_Event);
+
+
 
 
                 }
@@ -402,6 +414,7 @@ public final class FaceTrackerActivity extends Activity  implements View.OnClick
 
             mFaceGraphic.setId(faceId);
 
+
         }
 
         /**
@@ -409,9 +422,30 @@ public final class FaceTrackerActivity extends Activity  implements View.OnClick
          */
         @Override
         public void onUpdate(FaceDetector.Detections<Face> detectionResults, Face face) {
-            FacePos =mFaceGraphic.getFacePos();
+            SparseArray<Face> allFace =detectionResults.getDetectedItems();
+            int minID = 1000;
+            for(int i =0;i<allFace.size();i++)
+            {
+                int Key=allFace.keyAt(i);
+                Face index =allFace.get(Key);
+
+                if(Key <minID)minID=Key;
+
+            }
+
+            if(minID ==face.getId()) {
+                mFaceGraphic.setRectColor(Color.RED);
+                FacePos = mFaceGraphic.getFacePos();
+            }
+            else
+            {
+                mFaceGraphic.setRectColor(Color.BLUE);
+
+            }
             mOverlay.add(mFaceGraphic);
             mFaceGraphic.updateFace(face);
+
+
         }
 
         /**
@@ -421,6 +455,7 @@ public final class FaceTrackerActivity extends Activity  implements View.OnClick
          */
         @Override
         public void onMissing(FaceDetector.Detections<Face> detectionResults) {
+
             mOverlay.remove(mFaceGraphic);
         }
 
@@ -525,9 +560,14 @@ public final class FaceTrackerActivity extends Activity  implements View.OnClick
     }
     void RobotContorller (char CommitCode,int X_Event,int Y_Event)
     {
+            CurrentCommand =""+CommitCode+X_Event+Y_Event;
+            if(!CurrentCommand.equals(PreCommand) || CurrentFace.Distance(PreFace) > 100)
+            {
+                PreCommand =CurrentCommand;
 
-            SendBleMsg(DEVICE_NAMES.get(0)+","+CommitCode+X_Event+ Y_Event);
-
+                SendBleMsg(DEVICE_NAMES.get(0)+","+CommitCode+X_Event+ Y_Event);
+                PreFace.setPosition(CurrentFace);
+            }
     }
 
 
